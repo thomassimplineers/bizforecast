@@ -172,35 +172,22 @@ export function DealDialog({ open, onOpenChange, deal, manufacturers, resellers,
       }));
     }
   };
-
   const marginUSD = calculateMarginUSD(formData.sellUSD, formData.marginPct);
   const costUSD = calculateCostUSD(formData.sellUSD, formData.marginPct);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle>
-                {deal ? 'Redigera Affär' : 'Ny Affär'}
-              </DialogTitle>
-              <DialogDescription>
-                {deal ? 'Uppdatera affärsdetaljer nedan.' : 'Fyll i detaljer för den nya affären.'}
-              </DialogDescription>
-            </div>
-            {deals.length > 0 && (
-              <ExportDialog 
-                deals={deals}
-                manufacturers={manufacturers}
-                resellers={resellers}
-                bdms={bdms}
-              />
-            )}
-          </div>
+          <DialogTitle className="text-lg">
+            {deal ? 'Redigera Affär' : 'Ny Affär'}
+          </DialogTitle>
+          <DialogDescription>
+            {deal ? 'Uppdatera affärsinformation' : 'Lägg till en ny affär i systemet'}
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center justify-between">

@@ -13,9 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Building2, TrendingUp, Percent, Download, Calendar, Filter } from 'lucide-react';
+import { Building2, TrendingUp, Percent, Download, Calendar, Filter, Grid3X3 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import * as XLSX from 'xlsx';
+import { exportManufacturerMonthMatrix } from '@/lib/manufacturer-month-export';
 
 interface ManufacturerForecastListProps {
   deals: Deal[];
@@ -202,45 +204,63 @@ export function ManufacturerForecastList({
     }
   };
 
-  const exportToCSV = () => {
-    const headers = [
-      'Tillverkare',
-      'Antal Affärer',
-      'Total Omsättning (USD)',
-      'Viktad Omsättning (USD)',
-      'Total Marginal (USD)',
-      'Viktad Marginal (USD)',
-      'Genomsnittsmarginal (%)',
-      'Andel av Pipeline (%)'
+  const exportToExcel = () => {
+    const timestamp = new Date().toISOString().split('T')[0];
+    
+    // Create Excel data with styling
+    const excelData = [
+      ['TILLVERKARE FORECAST RAPPORT', '', '', '', '', '', '', ''],
+      [`Genererad: ${new Date().toLocaleDateString('sv-SE')}`, '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', ''],
+      ['Tillverkare', 'Antal Affärer', 'Total Omsättning (USD)', 'Viktad Omsättning (USD)', 'Total Marginal (USD)', 'Viktad Marginal (USD)', 'Genomsnittsmarginal (%)', 'Andel av Pipeline (%)'],
+      ...sortedForecasts.map(forecast => {
+        const pipelineShare = totals.weightedRevenue > 0 ? (forecast.weightedRevenue / totals.weightedRevenue) * 100 : 0;
+        return [
+          forecast.manufacturerName,
+          forecast.dealCount,
+          forecast.totalRevenue,
+          forecast.weightedRevenue,
+          forecast.totalMargin,
+          forecast.weightedMargin,
+          forecast.averageMarginPct / 100, // Convert to decimal for percentage formatting
+          pipelineShare / 100 // Convert to decimal for percentage formatting
+        ];
+      }),
+      // Add totals row
+      [
+        'TOTALT',
+        totals.dealCount,
+        totals.totalRevenue,
+        totals.weightedRevenue,
+        totals.totalMargin,
+        totals.weightedMargin,
+        overallAverageMargin / 100,
+        1.0 // 100%
+      ]
     ];
 
-    const rows = sortedForecasts.map(forecast => {
-      const pipelineShare = totals.weightedRevenue > 0 ? (forecast.weightedRevenue / totals.weightedRevenue) * 100 : 0;
-      return [
-        forecast.manufacturerName,
-        forecast.dealCount.toString(),
-        forecast.totalRevenue.toFixed(0),
-        forecast.weightedRevenue.toFixed(0),
-        forecast.totalMargin.toFixed(0),
-        forecast.weightedMargin.toFixed(0),
-        forecast.averageMarginPct.toFixed(2),
-        pipelineShare.toFixed(1)
-      ];
-    });
-
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `tillverkare_forecast_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+    
+    // Apply custom styling (simplified version for this component)
+    if (!worksheet['!cols']) worksheet['!cols'] = [];
+    worksheet['!cols'] = [
+      { wch: 20 }, // Tillverkare
+      { wch: 12 }, // Antal Affärer
+      { wch: 18 }, // Total Omsättning
+      { wch: 18 }, // Viktad Omsättning
+      { wch: 16 }, // Total Marginal
+      { wch: 16 }, // Viktad Marginal
+      { wch: 18 }, // Genomsnittsmarginal
+      { wch: 16 }  // Andel av Pipeline
+    ];
+    
+    // Freeze first row
+    worksheet['!freeze'] = { xSplit: 0, ySplit: 4 }; // Freeze header row
+    
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tillverkare Forecast');
+    XLSX.writeFile(workbook, `Tillverkare_Forecast_${timestamp}.xlsx`);
   };
 
   return (
@@ -253,10 +273,20 @@ export function ManufacturerForecastList({
             Pipeline-prognos per tillverkare med omsättning och genomsnittsmarginal
           </p>
         </div>
-        <Button onClick={exportToCSV} variant="outline" className="flex items-center space-x-2">
-          <Download className="h-4 w-4" />
-          <span>Exportera CSV</span>
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button onClick={exportToExcel} variant="outline" className="flex items-center space-x-2">
+            <Download className="h-4 w-4" />
+            <span>Exportera Lista</span>
+          </Button>
+          <Button 
+            onClick={() => exportManufacturerMonthMatrix(deals, manufacturers, excludePastDeals)} 
+            variant="default" 
+            className="flex items-center space-x-2"
+          >
+            <Grid3X3 className="h-4 w-4" />
+            <span>Månadsmatrix</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

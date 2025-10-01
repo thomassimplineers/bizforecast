@@ -2,6 +2,134 @@ import { Deal, Manufacturer, Reseller, BDM } from '@/types';
 import { categorizeDeal, getForecastCategorizations, calculateCostUSD, calculateKPIs } from './calculations';
 import * as XLSX from 'xlsx';
 
+// Excel styling constants
+const HEADER_STYLE = {
+  font: { bold: true, color: { rgb: "FFFFFF" } },
+  fill: { fgColor: { rgb: "2563EB" } }, // Blue background
+  alignment: { horizontal: "center", vertical: "center" },
+  border: {
+    top: { style: "thin", color: { rgb: "000000" } },
+    bottom: { style: "thin", color: { rgb: "000000" } },
+    left: { style: "thin", color: { rgb: "000000" } },
+    right: { style: "thin", color: { rgb: "000000" } }
+  }
+};
+
+const TITLE_STYLE = {
+  font: { bold: true, size: 16, color: { rgb: "1F2937" } },
+  alignment: { horizontal: "center", vertical: "center" },
+  fill: { fgColor: { rgb: "F3F4F6" } }
+};
+
+const CURRENCY_STYLE = {
+  numFmt: "#,##0",
+  alignment: { horizontal: "right" },
+  border: {
+    top: { style: "thin", color: { rgb: "E5E7EB" } },
+    bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+    left: { style: "thin", color: { rgb: "E5E7EB" } },
+    right: { style: "thin", color: { rgb: "E5E7EB" } }
+  }
+};
+
+const PERCENTAGE_STYLE = {
+  numFmt: "0.0%",
+  alignment: { horizontal: "right" },
+  border: {
+    top: { style: "thin", color: { rgb: "E5E7EB" } },
+    bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+    left: { style: "thin", color: { rgb: "E5E7EB" } },
+    right: { style: "thin", color: { rgb: "E5E7EB" } }
+  }
+};
+
+const DATA_STYLE = {
+  alignment: { horizontal: "left" },
+  border: {
+    top: { style: "thin", color: { rgb: "E5E7EB" } },
+    bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+    left: { style: "thin", color: { rgb: "E5E7EB" } },
+    right: { style: "thin", color: { rgb: "E5E7EB" } }
+  }
+};
+
+const TOTAL_STYLE = {
+  font: { bold: true },
+  fill: { fgColor: { rgb: "F9FAFB" } },
+  border: {
+    top: { style: "medium", color: { rgb: "374151" } },
+    bottom: { style: "thin", color: { rgb: "374151" } },
+    left: { style: "thin", color: { rgb: "374151" } },
+    right: { style: "thin", color: { rgb: "374151" } }
+  }
+};
+
+/**
+ * Apply styles to Excel worksheet
+ */
+function applyExcelStyles(worksheet: XLSX.WorkSheet, data: any[][], startRow: number = 0) {
+  if (!worksheet['!cols']) worksheet['!cols'] = [];
+  
+  // Auto-size columns
+  const colWidths = data[0]?.map((_, colIndex) => {
+    const maxLength = Math.max(
+      ...data.map(row => String(row[colIndex] || '').length)
+    );
+    return { wch: Math.min(Math.max(maxLength + 2, 10), 50) };
+  }) || [];
+  
+  worksheet['!cols'] = colWidths;
+  
+  // Apply styles to cells
+  data.forEach((row, rowIndex) => {
+    row.forEach((cell, colIndex) => {
+      const cellAddress = XLSX.utils.encode_cell({ r: startRow + rowIndex, c: colIndex });
+      
+      if (!worksheet[cellAddress]) return;
+      
+      // Header row (first row)
+      if (rowIndex === 0) {
+        worksheet[cellAddress].s = HEADER_STYLE;
+      }
+      // Title rows (contains "RAPPORT" or "SAMMANSTÄLLNING")
+      else if (typeof cell === 'string' && (cell.includes('RAPPORT') || cell.includes('SAMMANSTÄLLNING'))) {
+        worksheet[cellAddress].s = TITLE_STYLE;
+      }
+      // Total rows
+      else if (typeof cell === 'string' && cell === 'TOTALT') {
+        worksheet[cellAddress].s = { ...DATA_STYLE, ...TOTAL_STYLE };
+      }
+      // Currency columns (contains numbers > 1000)
+      else if (typeof cell === 'number' && cell > 1000) {
+        worksheet[cellAddress].s = CURRENCY_STYLE;
+      }
+      // Percentage columns (contains % or decimal < 1)
+      else if (typeof cell === 'number' && cell < 1 && cell > 0) {
+        worksheet[cellAddress].s = PERCENTAGE_STYLE;
+      }
+      // Regular data
+      else {
+        worksheet[cellAddress].s = DATA_STYLE;
+      }
+    });
+  });
+  
+  return worksheet;
+}
+
+/**
+ * Create styled Excel sheet
+ */
+function createStyledSheet(data: any[][], sheetName: string) {
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  applyExcelStyles(worksheet, data);
+  
+  // Add freeze panes (freeze first row)
+  worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
+  
+  return worksheet;
+}
+
 /**
  * Convert data to CSV format
  */
@@ -404,7 +532,7 @@ export function exportExcelReport(
     ['Förlorade affärer:', deals.filter(d => d.status === 'lost').length.toString(), '', ''],
   ];
 
-  const summarySheet = XLSX.utils.aoa_to_sheet(executiveSummary);
+  const summarySheet = createStyledSheet(executiveSummary, 'Executive Summary');
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Executive Summary');
 
   // 2. QUARTERLY FORECAST SHEET
@@ -473,7 +601,7 @@ export function exportExcelReport(
       ])
   ];
 
-  const quarterlySheet = XLSX.utils.aoa_to_sheet(quarterlyExportData);
+  const quarterlySheet = createStyledSheet(quarterlyExportData, 'Kvartalsprognos');
   XLSX.utils.book_append_sheet(workbook, quarterlySheet, 'Kvartalsprognos');
 
   // 3. MONTHLY FORECAST SHEET
@@ -540,7 +668,7 @@ export function exportExcelReport(
       ])
   ];
 
-  const monthlySheet = XLSX.utils.aoa_to_sheet(monthlyExportData);
+  const monthlySheet = createStyledSheet(monthlyExportData, 'Månadsprognos');
   XLSX.utils.book_append_sheet(workbook, monthlySheet, 'Månadsprognos');
 
   // 4. DETAILED DEALS SHEET
@@ -572,7 +700,7 @@ export function exportExcelReport(
     })
   ];
 
-  const dealsSheet = XLSX.utils.aoa_to_sheet(dealsExportData);
+  const dealsSheet = createStyledSheet(dealsExportData, 'Detaljerade Affärer');
   XLSX.utils.book_append_sheet(workbook, dealsSheet, 'Detaljerade Affärer');
 
   // 5. COMMITTED DEALS SHEET (High probability deals)
@@ -602,7 +730,7 @@ export function exportExcelReport(
     })
   ];
 
-  const committedSheet = XLSX.utils.aoa_to_sheet(committedExportData);
+  const committedSheet = createStyledSheet(committedExportData, 'Committed Affärer');
   XLSX.utils.book_append_sheet(workbook, committedSheet, 'Committed Affärer');
 
   // 6. MANUFACTURER REPORT SHEET
@@ -670,7 +798,7 @@ export function exportExcelReport(
       })
   ];
 
-  const manufacturerSheet = XLSX.utils.aoa_to_sheet(manufacturerExportData);
+  const manufacturerSheet = createStyledSheet(manufacturerExportData, 'Tillverkarrapport');
   XLSX.utils.book_append_sheet(workbook, manufacturerSheet, 'Tillverkarrapport');
 
   // Save the workbook

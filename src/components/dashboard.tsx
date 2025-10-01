@@ -261,49 +261,57 @@ export function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="min-h-[130px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Omsättning</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(kpis.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">Vunna affärer</p>
+            <div className="text-xl font-bold break-words leading-tight" title={formatCurrency(kpis.totalRevenue)}>
+              {formatCurrency(kpis.totalRevenue)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Vunna affärer</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-h-[130px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Bruttomarginal</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(kpis.grossMarginUSD)}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-xl font-bold break-words leading-tight" title={formatCurrency(kpis.grossMarginUSD)}>
+              {formatCurrency(kpis.grossMarginUSD)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
               {formatPercentage(kpis.grossMarginPct)} marginal
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-h-[130px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Viktad Marginal</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(kpis.weightedMarginUSD)}</div>
-            <p className="text-xs text-muted-foreground">Pipeline-prognos</p>
+            <div className="text-xl font-bold break-words leading-tight" title={formatCurrency(kpis.weightedMarginUSD)}>
+              {formatCurrency(kpis.weightedMarginUSD)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Pipeline-prognos</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-h-[130px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Viktad Omsättning</CardTitle>
             <Percent className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(kpis.weightedRevenueUSD)}</div>
-            <p className="text-xs text-muted-foreground">Pipeline-värde</p>
+            <div className="text-xl font-bold break-words leading-tight" title={formatCurrency(kpis.weightedRevenueUSD)}>
+              {formatCurrency(kpis.weightedRevenueUSD)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Pipeline-värde</p>
           </CardContent>
         </Card>
       </div>
